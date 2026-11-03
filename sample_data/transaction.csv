@@ -1,0 +1,6 @@
+date,txn date,narration,amount,currency,txn type
+2026-10-01,2026-10-01,Amazon,1500,INR,Debit
+2026-10-02,2026-10-02,Salary,45000,INR,Credit
+2026-10-03,2026-10-03,Swiggy,650,INR,Debit
+2026-10-04,2026-10-04,Netflix,499,INR,Debit
+2026-10-05,2026-10-05,Freelance Payment,5000,INR,Credit
