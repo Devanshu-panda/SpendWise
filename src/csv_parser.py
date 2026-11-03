@@ -36,7 +36,7 @@ def map_columns_alias(df):
             if col == alias:
                mapping[col] = key
 
-   unmapped = [col for col in df if col not in mapping]
+   unmapped = [col for col in df.columns if col not in mapping]
    
    for values in mapping.values():
       if list(mapping.values()).count(values) > 1 and values not in checked:
