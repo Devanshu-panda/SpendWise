@@ -1,5 +1,6 @@
 import pandas as pd
 
+#This Function reades the csv file and look for errors and reports them.
 def read_csv_file(file_path):
    try:
       df = pd.read_csv(file_path)
@@ -14,9 +15,11 @@ def read_csv_file(file_path):
    
    return df
 
+#Standard columns are used in datdabase and the mandatory columns are requred to process the data further. 
 standard_columns = ['date', 'description', 'amount', 'currency', 'transaction_type']
 mandatory_columns = ['date', 'description', 'amount']
 
+#The following alias will only be identified for automatic mapping.
 column_alias = {
    'date' : ["date", "txn date", "transaction date", "trans date", "date of transaction", "date of txn", "date of trans"],
    'description' : ["description", "desc", "transaction description", "txn description", "trans description", "details", "transaction details", "txn details", "trans details", "narration", "transaction narration", "txn narration", "trans narration", "particulars", "transaction particulars", "txn particulars", "trans particulars", "remarks", "transaction remarks", "txn remarks", "trans remarks", "merchant", "transaction merchant", "txn merchant", "trans merchant", "payee", "transaction payee", "txn payee", "trans payee"],
@@ -25,10 +28,13 @@ column_alias = {
    'transaction_type' : ["type", "transaction type", "txn type", "trans type", "type of transaction", "type of txn", "type of trans", "debit/credit", "debit or credit", "debit or credit indicator", "debit/credit indicator", "dr/cr", "dr or cr"],
 }
 
+#This function deals with the normalization of column names of dataframe.
 def normalize_column_names(df):
    df.columns = df.columns.str.strip().str.lower().str.replace("_", " ")
    return df
 
+#This automatically maps the found alias only if there are no multipe column in dataframe mapped to same standard column.
+#If there is a conflict it reports as manual_mapping_req
 def map_columns_alias(df):
    mapping = {}
    conflicts = {}
@@ -54,12 +60,13 @@ def map_columns_alias(df):
    
    return df, conflicts, manual_mapping_req, unmapped
 
-#This function is called only when the manual mapping is false.
+#This function validates the mapping for mandatory columns, if there is no conflict.
 def check_column_mapping(df):
    missing = [col for col in mandatory_columns if col not in df.columns]
    all_mandatory_present = not missing
    return all_mandatory_present, missing
 
+#This function let the user map the columns manually and ask for revision if user wants to.
 def manual_mapping(df, conflicts, user_mapping = None):   
    if user_mapping is None:
       user_mapping = {}
@@ -125,6 +132,7 @@ def manual_mapping(df, conflicts, user_mapping = None):
             del choices[choice-1] 
       return user_mapping
 
+#This validates if all the mandatory columns are mapped or not an if not then reports the missing_columns.
 def validate_mandatory_mapping(df, user_mapping):
    missing_columns = [
       col for col in mandatory_columns if (col not in user_mapping.values()) and(col not in df.columns)
@@ -132,6 +140,7 @@ def validate_mandatory_mapping(df, user_mapping):
    all_mandatory_columns_present = not missing_columns
    return all_mandatory_columns_present, missing_columns
 
+#After validation of the manual mapping this function applies it to the dataframe.
 def apply_manual_mapping(df, user_mapping):
    ignored_columns = [col for col in user_mapping if user_mapping[col] == "ignore"]
    rename_mapping = {
@@ -140,4 +149,70 @@ def apply_manual_mapping(df, user_mapping):
       if standard_col != "ignore"
    }
    df = df.drop(columns = ignored_columns)
-   df = df.rename(columns = user_mapping)
+   df = df.rename(columns = rename_mapping)
+   return df
+
+def implement_csv_parser(file_path):
+   df = read_csv_file(file_path)
+   if isinstance(df, str):
+      return df
+   normalize_column_names(df)
+   df, conflicts, manual_mapping_req, unmapped = map_columns_alias(df)
+
+   if not manual_mapping_req:
+      all_mandatory_present, missing = check_column_mapping(df)
+      if all_mandatory_present:
+         df = df.drop(columns = unmapped)
+         return df
+      else:
+         print(f"These mandatory columns {missing} are not mapped, therefore proceed with manual mapping.")
+         while True:
+            while True:
+               user_mapping = manual_mapping(df, conflicts, user_mapping = None)
+               all_mandatory_columns_present, missing_columns = validate_mandatory_mapping(df, user_mapping)
+               if all_mandatory_columns_present:
+                  break
+               else:
+                  print(f"These mandatory columns {missing_columns} are not mapped, please revise the mapping!")
+            print("Current Mapping: ")
+            for key, value in user_mapping.items():
+               print(f"{key}: {value}")
+            while True:
+               want_to_revise = input("Do you want to revise the mapping(y/n)?").lower()
+               if want_to_revise in {"y", "n"}:
+                  break
+               else:
+                  print("Enter a valid option.")
+                  continue
+            if want_to_revise == "y":
+               continue
+            else:
+               break
+         df = apply_manual_mapping(df, user_mapping)
+         return df
+   else:
+      print(f"Manual mapping is required as these columns {conflicts} were mapped to same the same standaed columns.")
+      while True:
+         while True:
+            user_mapping = manual_mapping(df, conflicts, user_mapping = None)
+            all_mandatory_columns_present, missing_columns = validate_mandatory_mapping(df, user_mapping)
+            if all_mandatory_columns_present:
+                break
+            else:
+               print(f"These mandatory columns {missing_columns} are not mapped, please revise the mapping!")
+         print("Current Mapping: ")
+         for key, value in user_mapping.items():
+            print(f"{key}: {value}")
+         while True:
+            want_to_revise = input("Do you want to revise the mapping(y/n)?").lower()
+            if want_to_revise in {"y", "n"}:
+               break
+            else:
+               print("Enter a valid option.")
+               continue
+         if want_to_revise == "y":
+            continue
+         else:
+            break
+      df = apply_manual_mapping(df, user_mapping)
+      return df

@@ -1,4 +1,3 @@
-Date,Description,Amount,Currency,Type
-2026-10-01,Swiggy,450,INR,Expense
-2026-10-02,Scholarship,5000,INR,Income
-2026-10-03,Amazon,1200,INR,Expense
+Date,Description,Total Paid,Payment Type
+2026-10-01,Swiggy,450,UPI
+2026-10-02,Amazon,1200,Card
